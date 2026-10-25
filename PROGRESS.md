@@ -166,5 +166,5 @@ Verification completed with 14 passing Python tests, a successful strict TypeScr
 
 ## Runtime shutdown and repository publication - 2026-10-26
 
-The API, console, and red-team worker were stopped and removed with `docker compose --profile redteam down`. The Compose network was removed, the persistent `vigilai-data` volume was retained, and `docker compose --profile redteam ps -a` confirmed no remaining application containers. The workspace was audited for credential patterns and prepared for initial publication to `https://github.com/subhakar1999/VigilAI.git`; generated artifacts, local environments, databases, scan output, and environment files remain excluded through `.gitignore`.
+The API, console, and red-team worker were stopped and removed with `docker compose --profile redteam down`. The Compose network was removed, the persistent `vigilai-data` volume was retained, and `docker compose --profile redteam ps -a` confirmed no remaining application containers. The workspace was audited for credential patterns and published to `https://github.com/subhakar1999/VigilAI.git` on the `main` branch; the initial platform commit is `b5ba59f`. Generated artifacts, local environments, databases, scan output, and environment files remain excluded through `.gitignore`.
 

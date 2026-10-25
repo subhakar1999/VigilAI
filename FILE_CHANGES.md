@@ -219,5 +219,5 @@ Deployment verification completed successfully: 14 Python tests passed, strict T
 | MODIFIED | `.gitignore` | Removed duplicate cache exclusions while retaining local environments, generated output, databases, SARIF, and secrets exclusions. |
 | MODIFIED | `PROGRESS.md`, `FILE_CHANGES.md` | Recorded the stopped runtime, preserved data volume, credential audit, and initial GitHub publication preparation. |
 
-No application source files changed during shutdown or publication preparation. The target GitHub repository was confirmed to exist with no prior commits, so the workspace can be published as a new `main` branch without overwriting remote history.
+No application source files changed during shutdown or publication. The target GitHub repository was confirmed to contain no prior commits, and the initial implementation was pushed to its new `main` branch as commit `b5ba59f` without overwriting remote history. This ledger update records the completed publication.
 
