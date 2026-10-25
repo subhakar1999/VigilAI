@@ -1,0 +1,50 @@
+name: VigilAI CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  test-and-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install Python packages
+        run: |
+          pip install -e "packages/vigilai-scanner"
+          pip install -e "packages/vigilai-server[test]"
+          pip install -e "packages/vigilai-redteam[test]"
+      - name: Run Python tests
+        run: pytest packages/vigilai-scanner/tests packages/vigilai-server/tests packages/vigilai-redteam/tests
+      - name: Scan repository
+        run: vigilai scan . --output results.sarif --fail-on-gate
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: results.sarif
+
+  console:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/vigilai-console
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: packages/vigilai-console/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "vigilai-scanner"
+version = "0.1.0"
+description = "Fail-closed static security scanner for AI models and agent workflows"
+requires-python = ">=3.11"
+dependencies = ["httpx>=0.27,<1", "pydantic>=2.7,<3", "typer>=0.12,<1", "rich>=13.7,<15"]
+
+[project.scripts]
+vigilai = "vigilai.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["vigilai"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+

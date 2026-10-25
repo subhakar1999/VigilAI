@@ -1,0 +1,41 @@
+services:
+  server:
+    build: ./packages/vigilai-server
+    environment:
+      VIGILAI_DATABASE_URL: sqlite:////data/vigilai.db
+    ports:
+      - "8000:8000"
+    volumes:
+      - vigilai-data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  console:
+    build:
+      context: ./packages/vigilai-console
+      args:
+        VIGILAI_API_URL: http://server:8000
+        NEXT_PUBLIC_VIGILAI_API_URL: http://localhost:8000
+    environment:
+      VIGILAI_API_URL: http://server:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      server:
+        condition: service_healthy
+
+  redteam:
+    profiles: ["redteam"]
+    build: ./packages/vigilai-redteam
+    command: ["watch", "--server", "http://server:8000"]
+    restart: unless-stopped
+    depends_on:
+      server:
+        condition: service_healthy
+
+volumes:
+  vigilai-data:
+

@@ -1,0 +1,2 @@
+"""VigilAI adversarial assessment worker."""
+

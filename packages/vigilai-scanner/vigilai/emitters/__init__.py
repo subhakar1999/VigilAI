@@ -1,0 +1,2 @@
+"""Security report emitters."""
+

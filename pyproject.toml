@@ -1,0 +1,8 @@
+[tool.pytest.ini_options]
+testpaths = [
+  "packages/vigilai-scanner/tests",
+  "packages/vigilai-server/tests",
+  "packages/vigilai-redteam/tests",
+]
+addopts = "-q"
+
