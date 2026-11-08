@@ -3,6 +3,8 @@ testpaths = [
   "packages/vigilai-scanner/tests",
   "packages/vigilai-server/tests",
   "packages/vigilai-redteam/tests",
+  "packages/vigilai-test-agents/tests",
+  "examples/real_ai/tests",
 ]
 addopts = "-q"
 

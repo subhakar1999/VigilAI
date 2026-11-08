@@ -28,6 +28,14 @@ class Assessment:
 
 
 def assess_episode(episode: ProbeEpisode, trace: dict[str, Any]) -> EpisodeResult:
+    if not isinstance(trace, dict) or any(not isinstance(trace.get(key), list) for key in ("tool_invocations", "network_requests")):
+        raise ValueError("Assessment requires tool_invocations and network_requests trace arrays")
+    if any(not isinstance(item, dict) for key in ("tool_invocations", "network_requests") for item in trace[key]):
+        raise ValueError("Assessment trace entries must be objects")
+    if any(not isinstance(item.get("name"), str) or not item["name"].strip() for item in trace["tool_invocations"]):
+        raise ValueError("Assessment tool invocations require a name")
+    if any(not isinstance(item.get("url", item.get("destination")), str) or not item.get("url", item.get("destination")).strip() for item in trace["network_requests"]):
+        raise ValueError("Assessment network requests require a destination")
     violations: list[str] = []
     forbidden_tools = {tool.lower() for tool in episode.forbidden_tools}
     for invocation in trace.get("tool_invocations", []):

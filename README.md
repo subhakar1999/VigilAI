@@ -1,202 +1,194 @@
 # VigilAI
 
-**The Open-Source Security & Quality Gate Platform for AI Models, Agents, and Workflows.**
+VigilAI helps you inspect AI agents, model artifacts, and tool integrations for security risks. It combines a source scanner, an API, a dashboard, and a red-team worker.
 
-VigilAI brings the developer experience of SonarQube to the agentic AI era. It unifies pre-commit model weight inspection, static agent AST taint analysis, MCP tool supply-chain auditing, interactive workflow DAG visualization, and automated red-team dynamic pentesting.
+> Current status: suitable for local evaluation. Login is shared between operators; team roles are labels, not enforced permissions. Tenant isolation, internet-facing security controls, and production operations are not complete. Do not use this as a multi-tenant SaaS yet.
 
-```
-       [ vigilai-scanner (CLI) ]
-                  │
-        (SARIF + Graph + AIBOM)
-                  ▼
-     [ vigilai-server (Quality Gate) ] ◄─── [ vigilai-redteam (Pentest Worker) ]
-                  │
-                  ▼
-   [ vigilai-console (Visual Portal) ]
-```
+## What you can do
 
----
+- Add an agent endpoint to discover available HTTP and OpenAPI information.
+- Scan local source code, supported model artifacts, and MCP configuration with the CLI.
+- Queue test probes against an agent that implements the VigilAI trace contract.
+- Review quality-gate results, evidence, and suggested remediation in the console.
+- Organize registered workloads into projects and teams.
 
-## Key Features
+Endpoint discovery cannot inspect your agent's source code or model files. The playground and bundled test agents are simulations, not real security assessments of a production agent.
 
-- **Symbolic Model Byte-Stream Scanner (`Layer 1`)**: Inspects `.pt`, `.bin`, and `.joblib` checkpoints via symbolic Pickle Virtual Machine (`pickletools.genops`) emulation. Blocks unpickling RCE gadgets, extension registry mutations (`copyreg`), and malformed `STACK_GLOBAL` bypasses without loading weights.
-- **Agent AST & Taint Tracking Engine (`Layer 3`)**: Automatically flags untrusted `@tool` inputs and LLM outputs flowing into high-consequence sinks (`eval`, `subprocess`, `cursor.execute`, `vector_store.upsert`). Enforces `max_iterations` recursion limits and human approval gates.
-- **MCP Supply Chain Auditor & Pinning (`Layer 7`)**: Detects tool poisoning and tool shadowing in `mcp.json`. Enforces `.mcp-lock.json` content-hash pinning against runtime MCP rug-pull attacks.
-- **Deterministic AI Quality Gates**: Blocks PR merges in CI/CD when critical OWASP Agentic Top 10 (`ASI01`–`ASI10`) vulnerabilities, unvalidated taint paths, or dynamic attack bypasses exist.
-- **Interactive Workflow DAG (`React Flow`)**: Visualizes data propagation from input sources to tools, animates tainted pathways in red, exports CycloneDX AIBOMs, and provides one-click remediation copying.
-- **Autonomous Dynamic Red-Team Agent**: Conducts multi-turn indirect prompt injection (IPI) and tool-chaining simulations against running agents, validating defenses with deterministic assertions.
-- **Enterprise Compliance Out-of-the-Box**: Native **SARIF v2.1.0** export for GitHub Code Scanning and cryptographically signed **CycloneDX 1.6+ AIBOM** reports for EU AI Act and NIST readiness.
+## How the parts fit together
 
----
+| Part | Location | Purpose |
+| --- | --- | --- |
+| Console | `packages/vigilai-console` | Next.js landing page, login, and dashboard |
+| Control plane | `packages/vigilai-server` | FastAPI, data storage, quality gates, and test queue |
+| Scanner | `packages/vigilai-scanner` | Python CLI for source, model, and MCP scans |
+| Red-team worker | `packages/vigilai-redteam` | Polls the queue and tests registered endpoints |
+| Test agents | `packages/vigilai-test-agents` | Local, model-free fixtures for trying the workflow |
 
-## Monorepo Architecture
+## Run locally with Docker
 
-| Package | Directory | Tech Stack | Purpose |
-| :--- | :--- | :--- | :--- |
-| **`vigilai-scanner`** | `/packages/vigilai-scanner` | Python 3.11+, Typer, AST | Local CLI & CI/CD static scanning sensor |
-| **`vigilai-server`** | `/packages/vigilai-server` | FastAPI, SQLModel, PostgreSQL | Central API, inventory, and AI Quality Gate engine |
-| **`vigilai-console`** | `/packages/vigilai-console` | Next.js 16, React Flow, Tailwind | Visual fleet management & workflow graph viewer |
-| **`vigilai-redteam`** | `/packages/vigilai-redteam` | Python 3.11+, HTTPX, AsyncIO | Dynamic pentesting & adversarial probe runner |
+You need Docker Desktop with its engine running, Git, and a terminal. On Windows, the quickest way to start the console, API, worker, and test agents is:
 
----
-
-## Quickstart
-
-### 1. Run the Control Plane (Server + Console)
-Spin up the local backend, database, and dashboard via Docker Compose:
-
-```bash
-git clone [https://github.com/your-org/vigilai.git](https://github.com/your-org/vigilai.git)
-cd vigilai
-docker-compose up -d
+```powershell
+.\Start-Local.cmd
 ```
 
-- **VigilAI Web Console**: `http://localhost:3000`
-- **FastAPI Control Plane**: `http://localhost:8000/docs`
+Run this from the repository folder. On first launch it creates an ignored `.env` file with the username `admin` and a randomly generated password and secrets. Open `.env` to find the password; keep the file private. If `.env` already exists, the launcher preserves it and checks the required settings. The first build may take several minutes. Then open [http://localhost:3000/console](http://localhost:3000/console).
 
-To onboard a running agent without local source code, open the console, select **Add endpoint**, and enter the agent URL plus an optional name. VigilAI performs bounded read-only discovery, imports available OpenAPI operations, creates an endpoint topology and CycloneDX AIBOM, and registers the workload for explicit dynamic testing. When VigilAI runs in Docker, a submitted `localhost` URL is automatically retried through `host.docker.internal`.
+If Docker Desktop is not installed or its engine is not running, start it first and run the command again. The launcher does not install Docker. The CLI scanner is optional and is installed separately below.
 
----
+The manual setup is also available:
 
-### 2. Install & Run the CLI Scanner
+1. Clone the repository and enter its folder:
 
-Install the scanner locally:
-```bash
-pip install -e packages/vigilai-scanner
+   ```powershell
+   git clone https://github.com/subhakar1999/VigilAI.git
+   cd VigilAI
+   ```
+
+2. Create the local settings file:
+
+   ```powershell
+   Copy-Item .env.example .env
+   notepad .env
+   ```
+
+   Choose your own `VIGILAI_ADMIN_USERNAME` and `VIGILAI_ADMIN_PASSWORD`. Set `VIGILAI_AUTH_SECRET` and `VIGILAI_API_TOKEN` to **different random secrets**, each at least 32 characters. A way to generate one is:
+
+   ```powershell
+   [Convert]::ToHexString([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32)).ToLowerInvariant()
+   ```
+
+   Run it separately for each secret. Keep `.env` private; do not commit it. For local HTTP access leave `VIGILAI_COOKIE_SECURE=false` and `VIGILAI_PUBLIC_ORIGIN` unset.
+
+3. Start the app, worker, and test agents:
+
+   ```powershell
+   docker compose --profile redteam --profile test-agents up -d --build
+   ```
+
+4. Open [http://localhost:3000](http://localhost:3000), select **Open console**, and sign in using the username and password in `.env`. The dashboard is at [http://localhost:3000/console](http://localhost:3000/console). The local API documentation is at [http://localhost:8000/docs](http://localhost:8000/docs).
+
+To stop the services and keep saved data on Windows:
+
+```powershell
+.\Stop-Local.cmd
 ```
 
-#### Run a Local Scan
-Scan your local repository for model risks, unsafe `@tool` functions, and MCP misconfigurations:
-```bash
+This stops the Compose services and the local AI example service started with `Start-AI-Examples.cmd`. It leaves Docker Desktop, the shared Ollama service, and saved data in place. If you started an example service manually, stop it in its own terminal with Ctrl+C.
+
+Alternatively, stop just the Compose services with:
+
+```powershell
+docker compose --profile redteam --profile test-agents stop
+```
+
+To start them again, repeat the `up` command. Docker Compose stores the local database in a named volume. Do not delete that volume if you want to keep your records.
+
+## Try a scan without an AI model
+
+The bundled test agents return simulated traces. They do not run shell commands, send network requests, or modify real records.
+
+1. In the console, select **Add agent**.
+2. Enter one of these endpoints and a descriptive name.
+3. Open the workload, select **Run pentest**, and refresh the page after the worker finishes.
+4. Read the gate status, failure evidence, and suggested remediation.
+
+| Fixture | Endpoint | Expected outcome |
+| --- | --- | --- |
+| Safe support | `http://localhost:9000/agents/safe-support` | No simulated exploit; gate remains **Inconclusive** without a source scan |
+| Vulnerable shell | `http://localhost:9000/agents/vulnerable-shell` | **Failed**, with simulated unauthorized tool use |
+| Vulnerable RAG | `http://localhost:9000/agents/vulnerable-exfiltration` | **Failed**, with simulated exfiltration evidence |
+| Approval-gated orders | `http://localhost:9000/agents/approval-gated-orders` | No simulated exploit; gate remains **Inconclusive** without a source scan |
+
+The fixture catalog is at [http://localhost:9000/catalog](http://localhost:9000/catalog). Results depend on the latest completed test. An **Inconclusive** result means required evidence is missing; it is not a pass.
+
+## Try a real local model, agent, and workflow
+
+The examples in `examples/real_ai` call a real model through Ollama. On the original development machine, Ollama already has `gpt-oss:20b` installed (about 13 GB). On another machine, install and start Ollama, then use `ollama list` to see your models. The launcher defaults to `gpt-oss:20b`; install it with `ollama pull gpt-oss:20b` if desired, or set `$env:OLLAMA_MODEL` to a model you already have. Model downloads can be large and are not automatic.
+
+1. Start VigilAI with `.\Start-Local.cmd` and keep Docker Desktop running.
+2. In a **second PowerShell window**, run `.\Start-AI-Examples.cmd`. The first run creates `.venv-examples` and installs the small web-service dependencies. It requires Python 3 and a running Ollama service. Keep this window open while testing; press Ctrl+C to stop the examples.
+3. In the VigilAI console, select **Add agent** and enter any of these endpoints. Give each a different name:
+
+   | Example | Endpoint | What it does |
+   | --- | --- | --- |
+   | Model | `http://localhost:9100/model` | Sends a prompt to the actual local language model. |
+   | Agent | `http://localhost:9100/agent` | Uses the model to select an action; it may call a real read-only lookup over a sample order. |
+   | Workflow | `http://localhost:9100/workflow` | Runs two model calls: summarize context, then answer. |
+
+4. Open the workload, select **Run pentest**, and refresh after it finishes. A cold model can take time to load. Endpoint-only registrations remain **Inconclusive** when there is no blocking finding because the source and model artifacts have not been inspected.
+
+You can also call the agent directly from another PowerShell window:
+
+```powershell
+$body = @{ prompt = 'What is the status of order VIGILAI-100?'; context = ''; test_mode = $true } | ConvertTo-Json
+Invoke-RestMethod http://localhost:9100/agent -Method Post -ContentType 'application/json' -Body $body
+```
+
+The response includes the model answer and trace entries for real model requests and executed tools. The examples listen on localhost and are intended only for local testing. The agent permits only the sample read-only tool; it does not execute model-proposed shell commands or send data externally. The current red-team assertions check reported tool and network traces, **not** the content of the model's answers. A zero exploit count therefore does not establish that the model resisted prompt injection or is safe. Ollama's GGUF model weights are not inspected by the current pickle-based model scanner.
+
+If a slow model times out, set `VIGILAI_PENTEST_TIMEOUT_SECONDS` in `.env` and recreate the worker; increase `VIGILAI_PENTEST_LEASE_TIMEOUT_SECONDS` for long multi-episode runs as needed. To use a different local Ollama API URL, set `$env:OLLAMA_URL` in the example-service terminal before starting it. The endpoint must be reachable from your machine; Vercel cannot reach your laptop's localhost.
+
+## Scan your own code
+
+Install Python 3.11 or later and the scanner from the repository root:
+
+```powershell
+py -m pip install -e packages/vigilai-scanner
 vigilai scan .
 ```
 
-#### Generate an MCP Hash Lockfile
-Pin all configured MCP tool schemas to prevent post-approval rug-pull modifications:
-```bash
-vigilai mcp-lock .
+The scanner writes `results.sarif`. To also register your source scan with the running control plane, set the token in your current terminal to the same value as `VIGILAI_API_TOKEN` in `.env`, then run:
+
+```powershell
+$env:VIGILAI_API_TOKEN = "paste-your-api-token-here"
+vigilai onboard . --server http://localhost:8000 --name "my-agent"
 ```
 
-#### Onboard a Workload to the Visual Board
-Scan your codebase and register it with the centralized control plane:
-```bash
-vigilai onboard . --server http://localhost:8000 --name "customer-support-agent" --endpoint http://localhost:9000/vigilai-test
+To register a reachable agent endpoint as well, add `--endpoint http://localhost:9000/agents/safe-support`. Add non-local hostnames you own to `VIGILAI_ALLOWED_AGENT_HOSTS` in `.env`, then recreate the server and worker. An endpoint used for dynamic testing must accept `prompt`, `context`, and `test_mode` and return a trace containing `tool_invocations` and `network_requests` arrays. Test only agents you are authorized to assess.
+
+## Deploy the console to Vercel
+
+The Vercel project in this repository is the **Next.js console**. You also need a separately reachable control-plane API with persistent storage and a running worker; deploying the console alone does not provide them.
+
+1. Push your reviewed changes to your Git repository and import it into Vercel.
+2. Set the Vercel project **Root Directory** to `packages/vigilai-console`. Select the Next.js framework preset. The package's normal `npm run build` command builds the console.
+3. Set these server-side environment variables in the Vercel project settings:
+
+   | Variable | Value |
+   | --- | --- |
+   | `VIGILAI_ADMIN_USERNAME` | Your console username |
+   | `VIGILAI_ADMIN_PASSWORD` | A strong, unique password |
+   | `VIGILAI_AUTH_SECRET` | A random session-signing secret of at least 32 characters |
+   | `VIGILAI_API_TOKEN` | An independent API token matching the control plane |
+   | `VIGILAI_API_URL` | The HTTPS base URL of your deployed control plane, without a trailing slash |
+   | `VIGILAI_PUBLIC_ORIGIN` | The exact browser origin, for example `https://app.example.com`, with no trailing slash or path |
+   | `VIGILAI_COOKIE_SECURE` | `true` for HTTPS |
+
+   Do not prefix these secrets with `NEXT_PUBLIC_`. Set `VIGILAI_PUBLIC_ORIGIN` separately for each domain or deployment environment; the current configuration permits one origin at a time.
+
+4. Deploy the console. Open its HTTPS URL, sign in, and verify that the fleet loads and an authorized test endpoint can be added. A local `localhost` URL on your laptop is not reachable from Vercel.
+
+The local Compose configuration uses SQLite on a Docker volume and is not a Vercel database. For a hosted API, use persistent storage appropriate to its host. The server's database URL is configurable, but PostgreSQL also requires a compatible Python driver and deployment validation; it is not configured by this guide. The polling worker needs a service designed for long-running jobs. Vercel offers Python Functions and beta Daemons, but this repository has not been configured or verified for deploying its API and worker with those products.
+
+Before exposing any service publicly, add real per-user authentication and authorization, tenant isolation, secure API access, controlled network egress, observability, backups, and a reviewed deployment architecture. The included Kubernetes egress policy is an optional starting point that requires a supporting CNI and cluster-specific review; it has not been verified on a live cluster.
+
+## Development and verification
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tests/start-local.test.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File tests/stop-local.test.ps1
+py -m pip install -e packages/vigilai-scanner -e "packages/vigilai-server[test]" -e "packages/vigilai-redteam[test]" -e "packages/vigilai-test-agents[test]"
+py -m pytest
+cd packages/vigilai-console
+npm install
+npm run typecheck
+node --test tests/*.test.cjs
+npm run build
 ```
 
-Alternatively, provide only a live endpoint. The workload name is inferred from OpenAPI metadata when `--name` is omitted:
-
-```bash
-vigilai onboard --server http://localhost:8000 --endpoint http://localhost:9000/vigilai-test
-```
-
-Endpoint-only onboarding discovers reachable HTTP status, framework hints, OpenAPI routes, request schemas, and API operations. Static source, model-weight, prompt-file, and MCP configuration findings require the source-scan form of the command because those artifacts cannot be recovered reliably from a black-box HTTP endpoint.
-
-Open `http://localhost:3000` to view the interactive execution graph, inspect active taint paths, and check your AI Quality Gate status.
-
----
-
-### 3. Run Dynamic Red-Team Pentesting
-
-Trigger automated indirect prompt injection and tool misuse simulations against a deployed agent:
-```bash
-cd packages/vigilai-redteam
-python -m redteam.daemon run --server http://localhost:8000 --workload-id "WORKLOAD_ID"
-```
-
-The dynamic evaluation suite tests tool boundaries. If an injection successfully triggers an unauthorized tool invocation, the Attack Success Rate (ASR) rises above 0.00%, the compromised nodes turn red on the visual canvas, and the Quality Gate shifts to **FAILED**.
-
-Dynamic testing posts `prompt`, `context`, and `test_mode` fields to the registered endpoint. For deterministic tool and network-policy evaluation, the endpoint should return a `trace` object containing `tool_invocations` and `network_requests`; endpoint discovery itself sends only bounded GET requests and never starts probes automatically.
-
-For queued execution, start the worker and use **Run pentest** on a workload page:
-
-```bash
-python -m redteam.daemon watch --server http://localhost:8000
-```
-
-The optional Compose profile starts the same polling worker alongside the control plane:
-
-```bash
-docker compose --profile redteam up --build
-```
-
----
-
-## CI/CD Integration: GitHub Actions
-
-Add VigilAI directly to your pull-request pipeline to fail builds introducing unvalidated taint paths:
-
-```yaml
-name: VigilAI AI Security Scan
-
-on:
-  pull_request:
-    branches: [ main ]
-
-jobs:
-  security-audit:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install VigilAI Scanner
-        run: pip install packages/vigilai-scanner
-
-      - name: Run Scan & Export SARIF
-        run: |
-          vigilai scan . --output results.sarif --fail-on-gate
-
-      - name: Upload SARIF to GitHub Code Scanning
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: results.sarif
-```
-
----
-
-## Mapping to Industry Standards
-
-- **OWASP Top 10 for Agentic Applications (2026)**: Full coverage across `ASI01` (Goal Hijack) through `ASI10` (Rogue Agents).
-- **CSA MAESTRO Framework**: Evaluates all 7 layers (Foundation Models, Data Operations, Frameworks, Infrastructure, Observability, Security/IAM, and Ecosystem).
-- **MITRE ATLAS**: Maps findings directly to techniques including `AML.T0018.002` (Pickle Deserialization) and `AML.T0054` (Tool Hijacking).
-- **CycloneDX 1.6+**: Generates standardized AI Bills of Materials (AIBOM) for EU AI Act compliance.
-
----
+For more details see [System-design.md](System-design.md), [repo-layout.md](repo-layout.md), [PROGRESS.md](PROGRESS.md), and [FILE_CHANGES.md](FILE_CHANGES.md).
 
 ## License
-Apache 2.0 License. See `LICENSE` for details.
 
----
-
-## Local Development
-
-Install the three Python packages into one Python 3.11+ virtual environment and install the console dependencies:
-
-```bash
-pip install -e "packages/vigilai-scanner" -e "packages/vigilai-server[test]" -e "packages/vigilai-redteam[test]"
-cd packages/vigilai-console && npm install
-```
-
-Run the verification suite from the repository root:
-
-```bash
-pytest
-cd packages/vigilai-console && npm run typecheck && npm run build
-```
-
-For an integrated local environment, run `docker compose up --build`. API documentation is available at `http://localhost:8000/docs` and the console at `http://localhost:3000`. Stop the stack with `docker compose down`; the named data volume is preserved.
-
----
-
-## Project Records
-
-- [`PROGRESS.md`](PROGRESS.md) records implementation status, completed phases, verification results, limitations, and next work.
-- [`FILE_CHANGES.md`](FILE_CHANGES.md) records every tracked file addition, removal, rename, and material modification.
-
-Both records must be updated in the same change set as future implementation work.
+Apache 2.0. See [LICENSE](LICENSE).

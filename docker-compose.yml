@@ -3,8 +3,11 @@ services:
     build: ./packages/vigilai-server
     environment:
       VIGILAI_DATABASE_URL: sqlite:////data/vigilai.db
+      VIGILAI_API_TOKEN: ${VIGILAI_API_TOKEN:?Set VIGILAI_API_TOKEN to an independent secret of at least 32 characters}
+      VIGILAI_ALLOWED_AGENT_HOSTS: ${VIGILAI_ALLOWED_AGENT_HOSTS:-localhost,127.0.0.1,::1,host.docker.internal,test-agents}
+      VIGILAI_PENTEST_LEASE_TIMEOUT_SECONDS: ${VIGILAI_PENTEST_LEASE_TIMEOUT_SECONDS:-1800}
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - vigilai-data:/data
     healthcheck:
@@ -18,9 +21,14 @@ services:
       context: ./packages/vigilai-console
       args:
         VIGILAI_API_URL: http://server:8000
-        NEXT_PUBLIC_VIGILAI_API_URL: http://localhost:8000
     environment:
       VIGILAI_API_URL: http://server:8000
+      VIGILAI_ADMIN_USERNAME: ${VIGILAI_ADMIN_USERNAME}
+      VIGILAI_ADMIN_PASSWORD: ${VIGILAI_ADMIN_PASSWORD}
+      VIGILAI_AUTH_SECRET: ${VIGILAI_AUTH_SECRET}
+      VIGILAI_API_TOKEN: ${VIGILAI_API_TOKEN:?Set VIGILAI_API_TOKEN to an independent secret of at least 32 characters}
+      VIGILAI_COOKIE_SECURE: ${VIGILAI_COOKIE_SECURE:-false}
+      VIGILAI_PUBLIC_ORIGIN: ${VIGILAI_PUBLIC_ORIGIN:-}
     ports:
       - "3000:3000"
     depends_on:
@@ -31,10 +39,25 @@ services:
     profiles: ["redteam"]
     build: ./packages/vigilai-redteam
     command: ["watch", "--server", "http://server:8000"]
+    environment:
+      VIGILAI_API_TOKEN: ${VIGILAI_API_TOKEN:?Set VIGILAI_API_TOKEN to an independent secret of at least 32 characters}
+      VIGILAI_ALLOWED_AGENT_HOSTS: ${VIGILAI_ALLOWED_AGENT_HOSTS:-localhost,127.0.0.1,::1,host.docker.internal,test-agents}
+      VIGILAI_PENTEST_TIMEOUT_SECONDS: ${VIGILAI_PENTEST_TIMEOUT_SECONDS:-180}
     restart: unless-stopped
     depends_on:
       server:
         condition: service_healthy
+
+  test-agents:
+    profiles: ["test-agents"]
+    build: ./packages/vigilai-test-agents
+    ports:
+      - "127.0.0.1:9000:9000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
 volumes:
   vigilai-data:

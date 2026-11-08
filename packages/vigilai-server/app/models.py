@@ -64,3 +64,36 @@ class PentestRequest(SQLModel, table=True):
     leased_at: datetime | None = None
     completed_at: datetime | None = None
 
+
+class Team(SQLModel, table=True):
+    id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True)
+    name: str = Field(index=True, max_length=200)
+    description: str = Field(default="", max_length=1000)
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
+
+
+class TeamMember(SQLModel, table=True):
+    id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True)
+    team_id: str = Field(foreign_key="team.id", index=True)
+    name: str = Field(max_length=200)
+    email: str = Field(index=True, max_length=320)
+    role: str = Field(default="ANALYST", max_length=32)
+    status: str = Field(default="INVITED", max_length=16)
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class Project(SQLModel, table=True):
+    id: str = Field(default_factory=lambda: str(uuid4()), primary_key=True)
+    key: str = Field(index=True, max_length=120)
+    name: str = Field(index=True, max_length=200)
+    description: str = Field(default="", max_length=2000)
+    visibility: str = Field(default="PRIVATE", max_length=16)
+    team_id: str | None = Field(default=None, foreign_key="team.id", index=True)
+    source_provider: str = Field(default="LOCAL", max_length=32)
+    repository_url: str | None = Field(default=None, max_length=2048)
+    quality_gate_policy: str = Field(default="VigilAI default", max_length=200)
+    workload_ids: list[str] = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
+

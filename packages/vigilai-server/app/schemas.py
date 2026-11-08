@@ -124,6 +124,7 @@ class WorkloadDetail(WorkloadSummary):
     graph: dict[str, Any]
     aibom: dict[str, Any]
     pentest_stats: dict[str, Any]
+    quality_gate_reasons: list[str] = Field(default_factory=list)
 
 
 class ScanResponse(BaseModel):
@@ -162,6 +163,101 @@ class EndpointOnboardResponse(ScanResponse):
     http_status: int
     openapi_detected: bool
     discovered_routes: int
+
+
+TeamRole = Literal["OWNER", "ADMIN", "MAINTAINER", "ANALYST", "VIEWER"]
+MemberStatus = Literal["INVITED", "ACTIVE"]
+ProjectVisibility = Literal["PRIVATE", "INTERNAL", "PUBLIC"]
+SourceProvider = Literal["LOCAL", "GITHUB", "GITLAB", "AZURE_DEVOPS", "BITBUCKET"]
+
+
+class TeamCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=200)
+    description: str = Field(default="", max_length=1000)
+
+
+class TeamMemberCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    email: str = Field(min_length=3, max_length=320)
+    role: TeamRole = "ANALYST"
+    status: MemberStatus = "INVITED"
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized.count("@") != 1 or "." not in normalized.rsplit("@", 1)[1]:
+            raise ValueError("email must be a valid address")
+        return normalized
+
+
+class TeamMemberView(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    name: str
+    email: str
+    role: TeamRole
+    status: MemberStatus
+    created_at: Any
+
+
+class TeamSummary(BaseModel):
+    id: str
+    name: str
+    description: str
+    member_count: int
+    project_count: int
+
+
+class TeamDetail(TeamSummary):
+    members: list[TeamMemberView] = Field(default_factory=list)
+
+
+class ProjectCreate(BaseModel):
+    key: str = Field(min_length=2, max_length=120, pattern=r"^[a-zA-Z0-9][a-zA-Z0-9._-]*$")
+    name: str = Field(min_length=2, max_length=200)
+    description: str = Field(default="", max_length=2000)
+    visibility: ProjectVisibility = "PRIVATE"
+    team_id: str | None = None
+    source_provider: SourceProvider = "LOCAL"
+    repository_url: str | None = None
+    quality_gate_policy: str = Field(default="VigilAI default", min_length=1, max_length=200)
+    workload_ids: list[str] = Field(default_factory=list)
+
+    @field_validator("repository_url")
+    @classmethod
+    def validate_repository_url(cls, value: str | None) -> str | None:
+        if value is None or not value.strip():
+            return None
+        parsed = urlparse(value)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("repository_url must be an absolute HTTP(S) URL")
+        return value.strip()
+
+
+class ProjectWorkloadLink(BaseModel):
+    workload_id: str
+
+
+class ProjectSummary(BaseModel):
+    id: str
+    key: str
+    name: str
+    description: str
+    visibility: ProjectVisibility
+    team_id: str | None
+    team_name: str | None
+    source_provider: SourceProvider
+    repository_url: str | None
+    quality_gate_policy: str
+    workload_ids: list[str]
+    workload_count: int
+    quality_gate_status: str
+    risk_score: int
+
+
+class ProjectDetail(ProjectSummary):
+    workloads: list[WorkloadSummary] = Field(default_factory=list)
 
 
 class PentestTrigger(BaseModel):

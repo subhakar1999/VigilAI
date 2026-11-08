@@ -1,10 +1,11 @@
 import httpx
 import pytest
 from sqlalchemy.pool import StaticPool
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, SQLModel, create_engine, select
 
 from app.database import get_session
 from app.main import app
+from app.models import PentestRequest, PentestRun, Scan
 
 
 @pytest.mark.asyncio
@@ -76,7 +77,18 @@ async def test_scan_to_pentest_quality_gate_flow() -> None:
                     "total_episodes": 2,
                     "attack_success_rate": 0.5,
                     "compromised_node_ids": ["planner"],
-                    "logs": [],
+                    "logs": [
+                        {
+                            "episode_id": "ipi-document-tool-call",
+                            "successful_exploit": True,
+                            "violations": ["forbidden tool invoked: shell"],
+                            "trace": {
+                                "node_id": "planner",
+                                "tool_invocations": [{"name": "shell"}],
+                                "network_requests": [],
+                            },
+                        }
+                    ],
                 },
             )
             assert callback.status_code == 200
@@ -85,12 +97,24 @@ async def test_scan_to_pentest_quality_gate_flow() -> None:
             detail = await client.get(f"/api/v1/workloads/{scan['workload_id']}")
             assert detail.status_code == 200
             assert detail.json()["graph"]["nodes"][0]["is_vulnerable"] is True
+            assert detail.json()["quality_gate_reasons"] == ["dynamic attack success rate is 50.00%"]
+            assert detail.json()["pentest_stats"]["logs"][0]["violations"] == ["forbidden tool invoked: shell"]
 
             empty = await client.get(
                 "/api/v1/pentest/requests/next",
                 params={"worker_id": "test-worker"},
             )
             assert empty.status_code == 204
+
+            deleted = await client.delete(f"/api/v1/workloads/{scan['workload_id']}")
+            assert deleted.status_code == 204
+            assert (await client.get(f"/api/v1/workloads/{scan['workload_id']}")).status_code == 404
+            assert (await client.delete(f"/api/v1/workloads/{scan['workload_id']}")).status_code == 404
+
+            with Session(engine) as verification_session:
+                assert not verification_session.exec(select(Scan).where(Scan.workload_id == scan["workload_id"])).all()
+                assert not verification_session.exec(select(PentestRun).where(PentestRun.workload_id == scan["workload_id"])).all()
+                assert not verification_session.exec(select(PentestRequest).where(PentestRequest.workload_id == scan["workload_id"])).all()
     finally:
         app.dependency_overrides.clear()
 
@@ -146,11 +170,12 @@ async def test_endpoint_only_onboarding(monkeypatch: pytest.MonkeyPatch) -> None
             assert response.status_code == 201
             payload = response.json()
             assert payload["discovered_routes"] == 3
-            assert payload["quality_gate_status"] == "PASSED"
+            assert payload["quality_gate_status"] == "UNKNOWN"
 
             detail = await client.get(f"/api/v1/workloads/{payload['workload_id']}")
             assert detail.status_code == 200
             assert detail.json()["name"] == "portal-agent"
             assert detail.json()["source_path"] is None
+            assert "does not inspect source" in detail.json()["quality_gate_reasons"][0]
     finally:
         app.dependency_overrides.clear()

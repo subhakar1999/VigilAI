@@ -1,0 +1,40 @@
+# Apply in the VigilAI namespace only after labelling the server and worker pods
+# and reviewing the DNS labels and allowed-agent port for your cluster.
+# Requires a CNI that enforces Kubernetes NetworkPolicy egress rules.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vigilai-security-service-egress
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: [vigilai-server, vigilai-redteam]
+  policyTypes: [Egress]
+  egress:
+    # DNS is required for service discovery. Adjust these selectors for the cluster.
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - {protocol: UDP, port: 53}
+        - {protocol: TCP, port: 53}
+    # Worker callbacks to the control plane in the same namespace.
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: vigilai-server
+      ports:
+        - {protocol: TCP, port: 8000}
+    # Only explicitly labelled test-agent pods in this namespace are reachable.
+    - to:
+        - podSelector:
+            matchLabels:
+              vigilai.io/allowed-agent: "true"
+      ports:
+        - {protocol: TCP, port: 9000}

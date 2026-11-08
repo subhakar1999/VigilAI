@@ -8,6 +8,7 @@ from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
 import httpx
+from .endpoint_policy import require_allowed_endpoint
 
 
 MAX_DISCOVERY_BYTES = 2 * 1024 * 1024
@@ -119,12 +120,20 @@ async def discover_endpoint_bundle(
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Probe an endpoint with GET requests and build a scan-compatible bundle."""
 
+    try:
+        require_allowed_endpoint(endpoint_url)
+    except ValueError as exc:
+        raise EndpointDiscoveryError(str(exc)) from exc
     candidates = [endpoint_url]
     docker_url = _docker_host_url(endpoint_url)
     if docker_url and docker_url not in candidates:
+        try:
+            require_allowed_endpoint(docker_url)
+        except ValueError as exc:
+            raise EndpointDiscoveryError(str(exc)) from exc
         candidates.append(docker_url)
     owns_client = client is None
-    active_client = client or httpx.AsyncClient(timeout=httpx.Timeout(8.0), follow_redirects=False)
+    active_client = client or httpx.AsyncClient(timeout=httpx.Timeout(8.0), follow_redirects=False, trust_env=False)
     errors: list[str] = []
     try:
         for candidate in candidates:

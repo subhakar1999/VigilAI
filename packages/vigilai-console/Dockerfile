@@ -9,8 +9,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ARG VIGILAI_API_URL=http://server:8000
 ENV VIGILAI_API_URL=$VIGILAI_API_URL
-ARG NEXT_PUBLIC_VIGILAI_API_URL=http://localhost:8000
-ENV NEXT_PUBLIC_VIGILAI_API_URL=$NEXT_PUBLIC_VIGILAI_API_URL
 RUN npm run build
 
 FROM node:22-alpine AS runner

@@ -4,6 +4,7 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .venv/
+.venv-examples/
 .uv-cache/
 .uv-python/
 node_modules/
@@ -15,4 +16,7 @@ results.sarif
 .env.local
 coverage.xml
 htmlcov/
-
+System-design.md
+FILE_CHANGES.md
+INSTRUCTIONS.md
+PROGRESS.md

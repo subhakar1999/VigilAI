@@ -8,6 +8,100 @@ Update this file in the same change set whenever a tracked file is added, remove
 
 Change types: `ADDED`, `MODIFIED`, `REMOVED`, and `RENAMED`.
 
+## 2026-11-08 — Unused-code audit
+
+| Change | Path | Purpose |
+| --- | --- | --- |
+| MODIFIED | `packages/vigilai-server/app/main.py` | Remove an unused schema import. |
+| MODIFIED | `PROGRESS.md`, `FILE_CHANGES.md` | Record the audit and cleanup. |
+
+## 2026-11-08 — One-command local shutdown
+
+| Change | Path | Purpose |
+| --- | --- | --- |
+| ADDED | `Stop-Local.cmd`, `scripts/stop-local.ps1` | Stop the project's Compose services and identifiable local AI example process without deleting data. |
+| ADDED | `tests/stop-local.test.ps1` | Verify that project services are targeted and unrelated processes are preserved. |
+| MODIFIED | `scripts/start-ai-examples.ps1` | Include the project directory in the example process command line for safe identification. |
+| MODIFIED | `README.md`, `repo-layout.md`, `PROGRESS.md`, `FILE_CHANGES.md` | Document the shutdown command, runtime status, and scope. |
+
+## 2026-11-08 — Real model, agent and workflow examples
+
+| Change | Path | Purpose |
+| --- | --- | --- |
+| ADDED | `examples/real_ai/__init__.py`, `examples/real_ai/main.py`, `examples/real_ai/requirements.txt`, `examples/real_ai/tests/test_examples.py` | Model-backed local endpoints, real tool and workflow behavior, dependencies, and tests. |
+| ADDED | `Start-AI-Examples.cmd`, `scripts/start-ai-examples.ps1` | Start the Ollama-backed example service on Windows. |
+| MODIFIED | `.gitignore`, `pyproject.toml` | Ignore the isolated example environment and include example tests. |
+| ADDED | `.venv-examples/` (ignored) | Isolated Python environment created by the launcher during validation; contains installed example dependencies. |
+| MODIFIED | `packages/vigilai-redteam/redteam/daemon.py`, `docker-compose.yml` | Allow configurable request and lease timeouts for slower real models. |
+| MODIFIED | `README.md`, `repo-layout.md`, `PROGRESS.md`, `FILE_CHANGES.md` | Document the endpoints, usage, limitations and verification. |
+
+## 2026-11-08 — One-command local startup
+
+| Change | Path | Purpose |
+| --- | --- | --- |
+| ADDED | `Start-Local.cmd`, `scripts/start-local.ps1` | One-command Windows startup for the complete local stack with first-run credential creation. |
+| ADDED | `tests/start-local.test.ps1` | Isolated launcher test for first-run credentials, preserving settings, and Compose profiles. |
+| MODIFIED | `README.md`, `repo-layout.md`, `PROGRESS.md`, `FILE_CHANGES.md` | Explain and record the launcher, prerequisites, and credential behavior. |
+
+## 2026-11-03 — Cleanup and Vercel documentation
+
+| Change | Path | Purpose |
+| --- | --- | --- |
+| MODIFIED | `README.md` | Replace the previous guide with clear setup, testing, CLI and Vercel console instructions and current limitations. |
+| MODIFIED | `packages/vigilai-console/src/app/page.tsx`, `packages/vigilai-console/src/app/api/playground/probe/route.ts` | Remove unused imports and simulation request fields. |
+| MODIFIED | `packages/vigilai-console/src/components/AgentPlayground.tsx`, `CicdWebhookGenerator.tsx`, `LandingArchitecture.tsx`, `LandingBeyondOwasp.tsx`, `LandingComparison.tsx`, `LandingHeroInteractive.tsx`, `LandingOwaspMatrix.tsx`, `LandingTestLab.tsx`, `PatchDiffViewer.tsx` | Remove unused imports and a redundant variable; component paths are under `packages/vigilai-console/src/components/`. |
+| MODIFIED | `packages/vigilai-console/src/lib/api.ts`, `packages/vigilai-console/Dockerfile`, `docker-compose.yml` | Remove the unused browser-exposed API URL build setting and add public-origin configuration. |
+| ADDED | `packages/vigilai-console/src/lib/origin.ts`, `packages/vigilai-console/tests/origin.test.cjs` | Validate configured public or local request origins and cover accepted and rejected cases. |
+| MODIFIED | `packages/vigilai-console/src/app/api/control/[...path]/route.ts`, `.env.example` | Use explicit public-origin validation and document the setting. |
+| MODIFIED | `PROGRESS.md`, `FILE_CHANGES.md`, `System-design.md`, `repo-layout.md` | Record the cleanup, deployment boundary, verification, and new origin setting. |
+
+## 2026-11-03 — Stop runtime and inspect sign-in
+
+| Change | Path | Purpose |
+| --- | --- | --- |
+| MODIFIED | `PROGRESS.md`, `FILE_CHANGES.md` | Record the stopped services and sign-in investigation. |
+
+## 2026-11-03 — End-to-end test run
+
+| Change | Path | Purpose |
+| --- | --- | --- |
+| MODIFIED | `.env` (ignored) | Added a randomly generated local API token; its value is not recorded here. |
+| MODIFIED | `PROGRESS.md`, `FILE_CHANGES.md` | Recorded runtime status, retained test records, verification results, and the portal origin failure. |
+
+## 2026-11-03 — Authentication and egress hardening
+
+| Change | Path | Purpose |
+| --- | --- | --- |
+| MODIFIED | `packages/vigilai-console/src/lib/auth.ts` | Remove fixed fallback credentials and signing secret; fail closed if configuration is missing. |
+| ADDED | `packages/vigilai-console/tests/auth.test.cjs` | Verify configured login, rejection of fallback passwords, and missing-configuration behavior. |
+| MODIFIED | `docker-compose.yml`, `.env.example` | Require a separate API token and restrict the published API port to loopback. |
+| ADDED | `deploy/kubernetes/egress-policy.yaml` | Provide opt-in, deny-by-default egress for labelled security service pods. |
+| MODIFIED | `README.md`, `repo-layout.md`, `System-design.md`, `PROGRESS.md`, `FILE_CHANGES.md` | Record configuration changes, unverified deployment policy, and remaining isolation work. |
+
+## 2026-11-03 — Assessment reliability and API access
+
+| Change | Path | Purpose |
+| --- | --- | --- |
+| ADDED | `packages/vigilai-server/app/auth.py`, `packages/vigilai-server/app/endpoint_policy.py` | Control-plane token validation and explicit endpoint host policy. |
+| ADDED | `packages/vigilai-console/src/app/api/control/[...path]/route.ts` | Session-protected same-origin control-plane proxy. |
+| ADDED | `packages/vigilai-server/tests/conftest.py`, `packages/vigilai-server/tests/test_access_and_coverage.py` | API access, host policy, and incomplete-evidence coverage. |
+| MODIFIED | `packages/vigilai-server/app/main.py`, `packages/vigilai-server/app/quality_gate.py`, `packages/vigilai-server/app/endpoint_discovery.py` | Re-evaluate incomplete assessments, protect operations, and restrict discovery targets. |
+| MODIFIED | `packages/vigilai-redteam/redteam/assertions.py`, `packages/vigilai-redteam/redteam/harness.py`, `packages/vigilai-redteam/redteam/daemon.py`, `packages/vigilai-scanner/vigilai/uploader.py` | Validate evidence, restrict agent targets, and authenticate control-plane clients. |
+| MODIFIED | `packages/vigilai-console/src/lib/api.ts`, `packages/vigilai-console/src/components/ArtifactActions.tsx`, `EndpointOnboardForm.tsx`, `ProjectCreateForm.tsx`, `TeamDirectory.tsx`, `WorkloadDeleteButton.tsx` | Route console API requests through authenticated server-side access. Component paths are under `packages/vigilai-console/src/components/`. |
+| MODIFIED | `packages/vigilai-console/src/components/QualityGateBadge.tsx`, `WorkloadInventory.tsx`, `AgentPlayground.tsx`, `packages/vigilai-console/src/app/workloads/[id]/page.tsx`, `packages/vigilai-console/src/app/api/playground/probe/route.ts` | Explain inconclusive results and label the non-networked playground simulation. Component paths are under `packages/vigilai-console/src/components/`. |
+| MODIFIED | `packages/vigilai-server/tests/test_api.py`, `packages/vigilai-redteam/tests/test_harness.py`, `docker-compose.yml`, `.env.example`, `README.md`, `repo-layout.md`, `System-design.md`, `PROGRESS.md`, `FILE_CHANGES.md` | Verify and document the new behavior and configuration. |
+
+## 2026-11-03 — Finding remediation and landing-page follow-up
+
+| Change | Path | Purpose |
+| --- | --- | --- |
+| ADDED | `packages/vigilai-console/src/components/FindingRemediation.tsx` | Displays static findings, advisory fixes, and evidence-specific dynamic guidance. |
+| MODIFIED | `packages/vigilai-console/src/components/GateFailureDetails.tsx` | Shows remediation per violation and removes the unrelated sample patch from actual failures. |
+| MODIFIED | `packages/vigilai-console/src/app/workloads/[id]/page.tsx` | Displays findings and suggested fixes on every workload page. |
+| MODIFIED | `README.md`, `System-design.md`, `repo-layout.md`, `PROGRESS.md`, `FILE_CHANGES.md` | Documents routes, remediation behavior, runtime status, and progress. |
+| ADDED | `packages/vigilai-console/src/app/console/page.tsx` | Hosts the protected fleet previously served at the root. |
+| MODIFIED | `packages/vigilai-console/src/app/page.tsx`, `packages/vigilai-console/src/app/globals.css`, `packages/vigilai-console/src/components/ConsoleShell.tsx`, `packages/vigilai-console/src/proxy.ts`, `packages/vigilai-console/src/components/LoginForm.tsx`, `packages/vigilai-console/src/app/login/page.tsx`, `packages/vigilai-console/src/components/WorkloadDeleteButton.tsx` | Public product landing page and protected-console navigation. |
+
 ## 2026-10-24 — Initial platform implementation
 
 ### Repository and operations
@@ -220,4 +314,149 @@ Deployment verification completed successfully: 14 Python tests passed, strict T
 | MODIFIED | `PROGRESS.md`, `FILE_CHANGES.md` | Recorded the stopped runtime, preserved data volume, credential audit, and initial GitHub publication preparation. |
 
 No application source files changed during shutdown or publication. The target GitHub repository was confirmed to contain no prior commits, and the initial implementation was pushed to its new `main` branch as commit `b5ba59f` without overwriting remote history. This ledger update records the completed publication.
+
+## 2026-10-26 - Functional-test diagnosis
+
+| Change | Path | Purpose |
+| --- | --- | --- |
+| MODIFIED | `PROGRESS.md`, `FILE_CHANGES.md` | Recorded the restarted runtime, expected demo-agent security failure, Windows pytest temp-directory issue, and successful isolated verification. |
+
+No application source files changed. Runtime evidence showed three intentionally simulated red-team violations and a correctly failed quality gate, while the isolated automated suite completed with 14 passing tests.
+
+## 2026-10-26 - Dashboard quality-gate explanations
+
+| Change | Path | Purpose |
+| --- | --- | --- |
+| ADDED | `packages/vigilai-console/src/components/GateFailureDetails.tsx` | Displays gate reasons, blocking findings, failed episodes, tool/network evidence, affected nodes, and raw traces. |
+| MODIFIED | `packages/vigilai-server/app/main.py` | Enriches workload detail responses with the latest persisted pentest run and deterministic gate reasons; retains detailed evidence in current stats. |
+| MODIFIED | `packages/vigilai-server/app/schemas.py` | Adds quality-gate reasons to the validated workload-detail response. |
+| MODIFIED | `packages/vigilai-server/tests/test_api.py` | Verifies persisted violation logs and computed failure reasons in workload details. |
+| MODIFIED | `packages/vigilai-console/src/lib/types.ts`, `src/app/workloads/[id]/page.tsx` | Adds typed pentest evidence and integrates the failure-details panel. |
+| MODIFIED | `README.md`, `repo-layout.md`, `System-design.md`, `PROGRESS.md`, `FILE_CHANGES.md` | Documents failure evidence, architecture, verification, and file changes. |
+
+The deployed existing `test` workload now explains its 100% ASR with three concrete violations: forbidden `shell`, forbidden `vigilai.invalid` network access, and forbidden `update_order`. All 14 Python tests, TypeScript validation, and the production console build pass.
+
+## 2026-10-26 - Canonical GitHub link
+
+| Change | Path | Purpose |
+| --- | --- | --- |
+| MODIFIED | `packages/vigilai-console/src/app/layout.tsx` | Links the header GitHub icon to `subhakar1999/VigilAI` in a safely isolated new tab. |
+| MODIFIED | `README.md` | Replaces the placeholder clone command with the canonical VigilAI repository URL. |
+| MODIFIED | `PROGRESS.md`, `FILE_CHANGES.md` | Records the repository-link update and its verification. |
+
+Verification passed through strict TypeScript checking, a production console build, a rebuilt console container, and rendered-page assertions for the canonical URL and `_blank` target. The running console reported no recent error signatures.
+
+## 2026-10-26 - Runtime shutdown after UI verification
+
+| Change | Path | Purpose |
+| --- | --- | --- |
+| MODIFIED | `PROGRESS.md`, `FILE_CHANGES.md` | Records the requested shutdown after dashboard and repository-link verification. |
+
+No application source files changed during shutdown. All VigilAI containers and the Compose network were removed; the persistent data volume was retained.
+
+## 2026-10-26 - SaaSFrame-inspired console redesign
+
+| Change | Path | Purpose |
+| --- | --- | --- |
+| ADDED | `packages/vigilai-console/src/components/ConsoleShell.tsx` | Adds responsive sidebar navigation, mobile drawer, workspace status, API/docs links, and repository access. |
+| ADDED | `packages/vigilai-console/src/components/WorkloadInventory.tsx` | Adds live name/framework search, gate-status filters, structured data-grid rows, and responsive empty states. |
+| MODIFIED | `packages/vigilai-console/src/app/layout.tsx`, `globals.css` | Introduces the operational workspace shell, refined surface tokens, typography, background, and global visual hierarchy. |
+| MODIFIED | `packages/vigilai-console/src/app/page.tsx` | Rebuilds the fleet overview with compact hierarchy, four bento posture metrics, and the interactive inventory. |
+| MODIFIED | `packages/vigilai-console/src/app/workloads/[id]/page.tsx` | Reorganizes workload identity, endpoint, actions, metrics, failure evidence, and topology into structured surfaces. |
+| MODIFIED | `packages/vigilai-console/src/components/EndpointOnboardForm.tsx`, `ArtifactActions.tsx`, `GateFailureDetails.tsx` | Aligns dialogs, primary/secondary actions, terminology, and failure panels with the new console system. |
+| MODIFIED | `README.md`, `repo-layout.md`, `System-design.md`, `PROGRESS.md`, `FILE_CHANGES.md` | Records the chosen inspiration source, UI architecture, verification, and file changes. |
+
+The redesign adapts general SaaS dashboard patterns without copying proprietary screens or assets. Strict TypeScript validation, the Next.js production build, and the console Docker image build completed successfully; the runtime remains stopped.
+
+## 2026-10-26 - SonarQube-inspired projects and teams
+
+| Change | Path | Purpose |
+| --- | --- | --- |
+| MODIFIED | `packages/vigilai-server/app/models.py` | Adds persistent project, team, and team-member records without altering the existing workload table. |
+| MODIFIED | `packages/vigilai-server/app/schemas.py` | Adds validated project, membership, role, visibility, provider, and aggregate response contracts. |
+| MODIFIED | `packages/vigilai-server/app/main.py` | Adds project/team CRUD-style endpoints, membership onboarding/removal, workload association, and aggregate gate/risk calculation. |
+| ADDED | `packages/vigilai-server/tests/test_project_team_api.py` | Verifies team membership, project creation, repository metadata, workload assignment, rollups, listing, and removal. |
+| ADDED | `packages/vigilai-console/src/app/projects/page.tsx` | Adds the project portfolio, posture totals, repository metadata, and aggregate status UI. |
+| ADDED | `packages/vigilai-console/src/app/teams/page.tsx` | Adds the team onboarding and ownership page. |
+| ADDED | `packages/vigilai-console/src/components/ProjectCreateForm.tsx` | Adds portal project creation, team selection, repository binding, visibility, and workload assignment. |
+| ADDED | `packages/vigilai-console/src/components/TeamDirectory.tsx` | Adds team creation, member invitation, governance roles, and member removal. |
+| MODIFIED | `packages/vigilai-console/src/components/ConsoleShell.tsx` | Adds Projects and Teams navigation and contextual page titles. |
+| MODIFIED | `packages/vigilai-console/src/lib/api.ts`, `src/lib/types.ts` | Adds typed project and team console contracts and fetchers. |
+| MODIFIED | `README.md`, `repo-layout.md`, `System-design.md`, `PROGRESS.md`, `FILE_CHANGES.md` | Documents use, hierarchy, limitations, verification, and the complete change ledger. |
+
+No tracked files were removed or renamed. Agent Reach was not needed because official SonarQube documentation was sufficient. The requested REA workflow inspected the generated standalone JavaScript artifact; its Evidence ID and partial static-analysis limitation are recorded in `PROGRESS.md`.
+
+Verification passed with 15 Python/API tests, strict TypeScript checking, a production Next.js build, Compose configuration validation, and updated server/console Docker image builds. No application container was started; the stack remains stopped and the persistent data volume remains intact.
+
+## 2026-10-26 - Runtime startup after project/team implementation
+
+| Change | Path | Purpose |
+| --- | --- | --- |
+| MODIFIED | `PROGRESS.md`, `FILE_CHANGES.md` | Records the requested startup and live health checks for the API, Projects, Teams, and console endpoints. |
+
+No application source file changed during startup. The server and console containers are running; the persistent data volume remains attached.
+
+## 2026-10-26 - VigilAI logo and console login
+
+| Change | Path | Purpose |
+| --- | --- | --- |
+| ADDED (local, ignored) | `.env` | Stores the local console username, password, HMAC signing secret, and cookie transport setting outside Git. |
+| ADDED | `.env.example` | Documents safe authentication configuration placeholders for new environments. |
+| ADDED | `packages/vigilai-console/public/vigilai-logo.png` | Adds the generated transparent VigilAI logo used by the product interface and metadata. |
+| ADDED | `packages/vigilai-console/src/lib/auth.ts` | Validates server-side credentials and creates/verifies signed, expiring session tokens. |
+| ADDED | `packages/vigilai-console/src/proxy.ts` | Redirects unauthenticated portal requests to the login page. |
+| ADDED | `packages/vigilai-console/src/app/api/auth/login/route.ts` | Validates credentials and issues the HTTP-only session cookie. |
+| ADDED | `packages/vigilai-console/src/app/api/auth/logout/route.ts` | Expires the authenticated session cookie. |
+| ADDED | `packages/vigilai-console/src/app/login/page.tsx` | Provides the dedicated login route. |
+| ADDED | `packages/vigilai-console/src/components/LoginForm.tsx` | Implements the branded, accessible username/password experience and error states. |
+| MODIFIED | `packages/vigilai-console/src/components/ConsoleShell.tsx` | Uses the generated mark, excludes the login page from the workspace shell, and adds logout. |
+| MODIFIED | `packages/vigilai-console/src/app/layout.tsx` | Registers the generated logo as application and Apple icon metadata. |
+| MODIFIED | `docker-compose.yml` | Supplies authentication variables from the root environment file to the console container. |
+| MODIFIED | `README.md`, `repo-layout.md`, `System-design.md`, `PROGRESS.md`, `FILE_CHANGES.md` | Documents configuration, security boundaries, verification, assets, and file changes. |
+
+No tracked file was removed or renamed. The logo was generated with the built-in image-generation skill and copied into the workspace. Authentication was tested in temporary containers, which were stopped afterward as requested.
+
+Final verification completed with 15 Python/API tests, strict TypeScript checking, a successful production build, valid Compose configuration, an ignored local `.env`, and no running application containers.
+
+## 2026-10-26 - Scan and team-member removal
+
+| Change | Path | Purpose |
+| --- | --- | --- |
+| MODIFIED | `packages/vigilai-server/app/main.py` | Adds confirmed workload deletion with scan, pentest-run, request, and project-association cleanup. |
+| MODIFIED | `packages/vigilai-server/tests/test_api.py` | Verifies child-record cleanup, successful deletion, and 404 behavior after removal. |
+| MODIFIED | `packages/vigilai-server/tests/test_project_team_api.py` | Verifies project detachment/rollup and refreshed team membership after removal. |
+| ADDED | `packages/vigilai-console/src/components/WorkloadDeleteButton.tsx` | Adds reusable confirmed scan removal with loading, failure, refresh, and redirect behavior. |
+| MODIFIED | `packages/vigilai-console/src/components/WorkloadInventory.tsx` | Adds a visible Remove scan action beside every workload. |
+| MODIFIED | `packages/vigilai-console/src/app/workloads/[id]/page.tsx` | Adds Remove scan to workload-level actions. |
+| MODIFIED | `packages/vigilai-console/src/components/TeamDirectory.tsx` | Makes member removal permanently visible and adds progress/error handling. |
+| MODIFIED | `README.md`, `repo-layout.md`, `System-design.md`, `PROGRESS.md`, `FILE_CHANGES.md` | Documents deletion scope, architecture, verification, and file changes. |
+
+No tracked file was removed or renamed. Verification passed with 15 Python/API tests, strict TypeScript checking, a successful production build, and updated server/console Docker image builds. The complete Compose profile, including the restart-enabled red-team worker, was explicitly stopped; no application containers remain running.
+
+## 2026-10-26 - Browser favicon visibility
+
+| Change | Path | Purpose |
+| --- | --- | --- |
+| ADDED | `packages/vigilai-console/public/vigilai-favicon-v2.png` | Adds a close-cropped, high-contrast transparent favicon derived from the VigilAI mark. |
+| MODIFIED | `packages/vigilai-console/src/app/layout.tsx` | Publishes the new cache-busting PNG as both standard and shortcut browser icon. |
+| MODIFIED | `packages/vigilai-console/src/proxy.ts` | Exempts the favicon from authentication so browsers receive image data instead of redirected login HTML. |
+| MODIFIED | `repo-layout.md`, `PROGRESS.md`, `FILE_CHANGES.md` | Records the favicon asset, design correction, and verification. |
+
+The primary application logo remains unchanged. The favicon variant was produced through the built-in image-generation workflow and saved separately to preserve the original asset.
+
+Verification confirmed the generated metadata links and direct HTTP 200 `image/png` delivery from the protected console. Production and Docker builds passed, and all temporary containers were stopped afterward.
+
+## 2026-10-26 - Deterministic test-agent laboratory
+
+| Change | Path | Purpose |
+| --- | --- | --- |
+| ADDED | `packages/vigilai-test-agents/pyproject.toml` | Defines the model-free fixture package, runtime dependencies, and test extras. |
+| ADDED | `packages/vigilai-test-agents/Dockerfile`, `.dockerignore` | Packages the isolated local FastAPI fixture service. |
+| ADDED | `packages/vigilai-test-agents/test_agents/__init__.py`, `main.py` | Implements the catalog and four deterministic agent profiles with simulated trace evidence. |
+| ADDED | `packages/vigilai-test-agents/tests/test_agent_endpoints.py` | Covers catalog/health, safe and gated behavior, simulated violations, and inert non-test behavior. |
+| MODIFIED | `pyproject.toml` | Includes the test-agent suite in the repository-wide pytest paths. |
+| MODIFIED | `docker-compose.yml` | Adds the loopback-only optional `test-agents` profile and health check. |
+| MODIFIED | `README.md`, `repo-layout.md`, `System-design.md`, `PROGRESS.md`, `FILE_CHANGES.md` | Documents endpoints, safety constraints, architecture, runtime status, and file additions. |
+
+No tracked file was removed or renamed. All 19 tests and four image builds passed. Live integration verified every agent endpoint, actual VigilAI discovery, container-to-host reachability, and dynamic assessments. The full stack remains running with four fixture workloads ready in the dashboard.
 

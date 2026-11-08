@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from typing import Any, Awaitable, Callable, Iterable
+import os
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -33,7 +35,11 @@ class RedTeamHarness:
 
 async def http_executor(endpoint_url: str, episode: ProbeEpisode, timeout: float = 30.0) -> dict[str, Any]:
     """Invoke a target's explicit VigilAI test endpoint; never follows arbitrary links."""
-    async with httpx.AsyncClient(timeout=timeout) as client:
+    parsed = urlsplit(endpoint_url)
+    allowed = {host.strip().lower().rstrip(".") for host in os.getenv("VIGILAI_ALLOWED_AGENT_HOSTS", "localhost,127.0.0.1,::1,host.docker.internal,test-agents").split(",") if host.strip()}
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname or parsed.username or parsed.password or parsed.hostname.lower().rstrip(".") not in allowed:
+        raise ValueError("Endpoint host is not in VIGILAI_ALLOWED_AGENT_HOSTS")
+    async with httpx.AsyncClient(timeout=timeout, follow_redirects=False, trust_env=False) as client:
         response = await client.post(endpoint_url, json={"prompt": episode.prompt, "context": episode.injected_context, "test_mode": True})
         response.raise_for_status()
         payload = response.json()
@@ -58,14 +64,14 @@ async def post_callback(
         "logs": [result.model_dump() for result in assessment.results],
         "compromised_node_ids": compromised,
     }
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=30.0, headers={"Authorization": f"Bearer {os.getenv('VIGILAI_API_TOKEN', '')}"}) as client:
         response = await client.post(f"{server.rstrip('/')}/api/v1/pentest/callback", json=payload)
         response.raise_for_status()
         return response.json()
 
 
 async def claim_next(server: str, worker_id: str) -> dict[str, Any] | None:
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=30.0, headers={"Authorization": f"Bearer {os.getenv('VIGILAI_API_TOKEN', '')}"}) as client:
         response = await client.get(
             f"{server.rstrip('/')}/api/v1/pentest/requests/next",
             params={"worker_id": worker_id},
@@ -77,7 +83,7 @@ async def claim_next(server: str, worker_id: str) -> dict[str, Any] | None:
 
 
 async def post_failure(server: str, request_id: str, worker_id: str, error: str) -> None:
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=30.0, headers={"Authorization": f"Bearer {os.getenv('VIGILAI_API_TOKEN', '')}"}) as client:
         response = await client.post(
             f"{server.rstrip('/')}/api/v1/pentest/requests/{request_id}/fail",
             json={"worker_id": worker_id, "error": error[:4000]},

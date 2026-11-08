@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import socket
+import os
 
 import httpx
 import typer
@@ -23,7 +24,8 @@ async def _assess(
     tool_schemas: list[dict[str, object]] | None = None,
 ) -> dict[str, object]:
     async def execute(episode):
-        return await http_executor(endpoint, episode)
+        timeout = max(1.0, float(os.getenv("VIGILAI_PENTEST_TIMEOUT_SECONDS", "180")))
+        return await http_executor(endpoint, episode, timeout=timeout)
 
     assessment = await RedTeamHarness(execute).run(tool_schemas=tool_schemas)
     callback = await post_callback(server, workload_id, assessment, request_id, worker_id)
@@ -32,7 +34,7 @@ async def _assess(
 
 
 async def _run(server: str, workload_id: str) -> None:
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=30.0, headers={"Authorization": f"Bearer {os.getenv('VIGILAI_API_TOKEN', '')}"}) as client:
         response = await client.get(f"{server.rstrip('/')}/api/v1/workloads/{workload_id}")
         response.raise_for_status()
         workload = response.json()

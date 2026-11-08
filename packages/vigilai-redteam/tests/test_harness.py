@@ -12,12 +12,20 @@ async def test_harness_records_bypass_for_quality_gate() -> None:
     probe = ProbeEpisode("test", "prompt", "context", ("shell",))
 
     async def compromised_executor(_):
-        return {"node_id": "danger", "tool_invocations": [{"name": "shell", "arguments": {"command": "echo VIGILAI_TEST_MARKER"}}]}
+        return {"node_id": "danger", "tool_invocations": [{"name": "shell", "arguments": {"command": "echo VIGILAI_TEST_MARKER"}}], "network_requests": []}
 
     assessment = await RedTeamHarness(compromised_executor).run([probe])
     assert assessment.successful_exploits == 1
     assert assessment.attack_success_rate == 1.0
     assert evaluate_quality_gate([], {}, assessment.attack_success_rate).status == "FAILED"
+
+
+@pytest.mark.asyncio
+async def test_missing_trace_is_not_a_pass() -> None:
+    async def incomplete_executor(_):
+        return {"output": "done"}
+    with pytest.raises(ValueError, match="trace arrays"):
+        await RedTeamHarness(incomplete_executor).run([ProbeEpisode("test", "prompt", "context", ("shell",))])
 
 
 @pytest.mark.asyncio
